@@ -17,7 +17,7 @@ The project delivers live dashboard monitoring and disease diagnosis with treatm
 
 ## Screenshots
 
-![Dashboard - Realtime Monitoring]()
+![Dashboard - Realtime Monitoring](docs/screenshots/dashboard-realtime.png)
 ![Disease Detection - Prediction](docs/screenshots/disease-detection-prediction.png)
 ![Disease Detection - Remedies](docs/screenshots/disease-detection-remedies.png)
 
