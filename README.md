@@ -17,7 +17,7 @@ The project delivers live dashboard monitoring and disease diagnosis with treatm
 
 ## Screenshots
 
-![Dashboard - Realtime Monitoring](/Users/priyanshuurmaliya/Desktop/Screenshot 2026-03-15 at 19.20.39.png)
+![Dashboard - Realtime Monitoring]()
 ![Disease Detection - Prediction](docs/screenshots/disease-detection-prediction.png)
 ![Disease Detection - Remedies](docs/screenshots/disease-detection-remedies.png)
 
@@ -29,7 +29,7 @@ ESP32 Sensors
 	-> FastAPI (ingest.py)
 	-> SQLite (data/sensors.db)
 	-> Streamlit (app.py)
-
+	
 Uploaded leaf image
 	-> ai/inference.py (SmartPlantDoctor)
 	-> Predicted class + confidence
