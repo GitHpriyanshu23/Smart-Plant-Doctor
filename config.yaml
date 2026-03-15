@@ -1,0 +1,14 @@
+seed: 42
+data:
+  root: ./data
+  raw: ./data/raw
+  processed: ./data/processed
+training:
+  image_size: 224
+  batch_size: 32
+  epochs: 20
+  lr: 3e-4
+  num_workers: 4
+model:
+  arch: mobilenet_v2
+  num_classes: null  # will set after we prepare dataset
