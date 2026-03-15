@@ -1,3 +1,5 @@
+hii
+
 # Smart Plant Doctor
 
 Smart Plant Doctor is an AI + IoT plant health platform that combines:
