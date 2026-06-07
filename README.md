@@ -7,9 +7,6 @@ Smart Plant Doctor is an AI + IoT plant health platform that combines:
 
 The project delivers live dashboard monitoring and disease diagnosis with treatment/prevention suggestions.
 
-# Pump.fun 
-GTg4dGtcqioyNyHM2B9Rwsh74Keuz4HK5USdSUNKpump
-
 ## Highlights
 
 - Realtime dashboard with auto-refresh
