@@ -6,9 +6,7 @@ Upgraded from the original [Streamlit prototype](app.py) to a full-stack **React
 
 ## Demo
 
-https://raw.githubusercontent.com/GitHpriyanshu23/Smart-Plant-Doctor/main/docs/demo.mp4
-
-Watch the full walkthrough: [docs/demo.mp4](docs/demo.mp4) — landing page, auth, dashboard, disease detection, encyclopedia, and AI chat.
+<video controls width="100%" src="docs/demo.mp4"></video>
 
 ## What's New (Major Upgrades)
 
