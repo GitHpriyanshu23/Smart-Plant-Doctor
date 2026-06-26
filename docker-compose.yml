@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: spd
+      POSTGRES_PASSWORD: spd
+      POSTGRES_DB: smart_plant_doctor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://spd:spd@db:5432/smart_plant_doctor
+      SECRET_KEY: dev-secret-change-in-production
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      PUBLIC_API_URL: http://localhost:8000
+      MODEL_PATH: /ai/exports/smart_plant_doctor_model.pth
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./ai:/ai
+    depends_on:
+      - db
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

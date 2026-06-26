@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: smart-plant-doctor-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smart-plant-doctor-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://your-app.vercel.app
+      - key: PUBLIC_API_URL
+        sync: false
+
+databases:
+  - name: smart-plant-doctor-db
+    plan: free

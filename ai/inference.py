@@ -38,26 +38,40 @@ class SmartPlantDoctor:
         self.num_classes = len(self.classes)
         
         print(f"🏷️ Found {self.num_classes} disease classes")
-        
-        # Rebuild model architecture (matching training architecture)
-        self.model = models.mobilenet_v2(pretrained=False)
-        self.model.classifier = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(self.model.last_channel, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
-            nn.Linear(512, self.num_classes)
-        )
-        
+
+        backbone = self.bundle.get("backbone", "mobilenet_v2")
+        input_size = self.bundle.get("input_size", 224)
+        self.temperature = self.bundle.get("temperature", 1.0)
+
+        if backbone == "efficientnet_b3":
+            self.model = models.efficientnet_b3(weights=None)
+            in_features = self.model.classifier[1].in_features
+            self.model.classifier = nn.Sequential(
+                nn.Dropout(p=0.2, inplace=True),
+                nn.Linear(in_features, 512),
+                nn.ReLU(inplace=True),
+                nn.Dropout(p=0.2, inplace=True),
+                nn.Linear(512, self.num_classes),
+            )
+        else:
+            self.model = models.mobilenet_v2(weights=None)
+            self.model.classifier = nn.Sequential(
+                nn.Dropout(0.2),
+                nn.Linear(self.model.last_channel, 512),
+                nn.ReLU(inplace=True),
+                nn.Dropout(0.2),
+                nn.Linear(512, self.num_classes),
+            )
+
         # Load trained weights
         self.model.load_state_dict(self.bundle['state_dict'])
         self.model = self.model.to(self.device).eval()
-        
+
         # Setup image preprocessing (matching training transforms)
         self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((input_size, input_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                std=[0.229, 0.224, 0.225])
         ])
         
@@ -452,6 +466,7 @@ class SmartPlantDoctor:
             
             # Predict
             output = self.model(image_tensor)
+            output = output / max(self.temperature, 1e-6)
             probabilities = torch.softmax(output, dim=1)[0]  # shape: [num_classes]
 
             # Aggregate probabilities by plant, then pick top disease within best plant

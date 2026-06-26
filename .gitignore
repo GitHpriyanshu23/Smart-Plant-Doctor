@@ -98,4 +98,7 @@ sensors data/.sconsign*.dblite
 !.env.example
 whatsapp_config.json
 *.pem
-*.key
+frontend/node_modules/
+frontend/dist/
+backend/uploads/
+backend/.venv/

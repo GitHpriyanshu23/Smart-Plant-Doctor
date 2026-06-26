@@ -1,201 +1,209 @@
 # Smart Plant Doctor
 
-Smart Plant Doctor is an AI + IoT plant health platform that combines:
+**Smart Plant Doctor** is an AI + IoT plant health platform that combines real-time environmental sensing from ESP32 devices with image-based disease detection and an AI plant care assistant.
 
-- realtime environmental sensing from ESP32 (temperature, humidity, light, soil moisture), and
-- image-based disease detection using a trained deep learning model.
+Upgraded from the original [Streamlit prototype](app.py) to a full-stack **React + FastAPI** application with Supabase authentication, live WebSocket dashboards, and a production-ready API.
 
-The project delivers live dashboard monitoring and disease diagnosis with treatment/prevention suggestions.
+## Demo
+
+<video src="docs/demo.mp4" controls width="100%"></video>
+
+[Download demo video](docs/demo.mp4)
+
+## What's New (Major Upgrades)
+
+| Feature | Before (v1) | Now (v2) |
+|---------|---------------|----------|
+| Frontend | Streamlit | **React + TypeScript + Vite PWA** |
+| Backend | Single `ingest.py` | **FastAPI** with modular routers |
+| Auth | None | **Supabase** (email + Google OAuth) |
+| Database | SQLite only | **PostgreSQL (Supabase)** or SQLite for local dev |
+| Dashboard | Basic charts | **Live metrics, charts, care recommendations, demo mode** |
+| Disease detection | Streamlit upload | **Drag-and-drop UI** with treatment cards + history |
+| Chat | — | **Gemma 4 AI assistant** with optional plant context |
+| Encyclopedia | — | **6 species** with care guides, seasonal tips, diseases |
+| Devices | Basic ESP32 ingest | **Device onboarding, multi-pot support, WebSockets** |
+| Community | — | **Disease map** (anonymized geohash reports) |
+| Landing page | — | **Modern glassmorphism landing** with feature showcase |
 
 ## Highlights
 
-- Realtime dashboard with auto-refresh
-- Sensor ingest pipeline (ESP32 -> FastAPI -> SQLite -> Streamlit)
-- Plant disease classifier with 29 classes
-- Treatment and prevention text for detected diseases
-- Plant-specific status metrics including Wet/Moist/Dry soil condition
+- **Real-time IoT dashboard** — temperature, humidity, light, soil moisture, plant health score
+- **AI disease detection** — trained MobileNetV2 model, 29 classes, ~92.37% accuracy
+- **Plant care chatbot** — Gemma 4 powered assistant with live sensor context
+- **Plant encyclopedia** — care guides for Rose, Hibiscus, Aloe Vera, Money Plant, Chrysanthemum, Turmeric
+- **Care journal** — log watering, fertilizing, and repotting events
+- **Device onboarding** — register ESP32 sensors and stream live readings
+- **Disease map** — crowdsourced plant health reports
 
-## Screenshots
+## Architecture
 
-![Dashboard - Realtime Monitoring](docs/screenshots/dashboard-realtime.png)
-![Disease Detection - Prediction](docs/screenshots/disease-detection-prediction.png)
-![Disease Detection - Remedies](docs/screenshots/disease-detection-remedies.png)
-
-## Project Architecture
-
-```text
+```
 ESP32 Sensors
-	-> HTTP POST /ingest
-	-> FastAPI (ingest.py)
-	-> SQLite (data/sensors.db)
-	-> Streamlit (app.py)
-	
-Uploaded leaf image
-	-> ai/inference.py (SmartPlantDoctor)
-	-> Predicted class + confidence
-	-> Treatment recommendations in UI
+  → POST /api/v1/ingest (device token)
+  → FastAPI backend
+  → PostgreSQL / SQLite
+  → WebSocket → React dashboard
+
+Leaf image upload
+  → POST /api/v1/diagnose
+  → MobileNetV2 (ai/inference.py)
+  → Disease + confidence + treatment recommendations
+
+Plant care question
+  → POST /api/v1/chat
+  → Gemma 4 (Google AI)
+  → Contextual advice with sensor + diagnosis data
 ```
 
 ## AI Model (Plant Disease Detection)
 
 ### Model used
 
-- Backbone: MobileNetV2 (PyTorch)
-- Inference model class: `SmartPlantDoctor` in `ai/inference.py`
-- Input size: 224 x 224
-- Output: 29 plant disease/healthy classes
+- **Backbone:** MobileNetV2 (PyTorch)
+- **Inference:** `SmartPlantDoctor` in `ai/inference.py`
+- **Input size:** 224 × 224
+- **Output:** 29 plant disease / healthy classes
+- **Validation accuracy:** ~92.37%
 
-### Classifier head used for inference
+### Supported plants
 
-The deployed model reconstructs MobileNetV2 and uses this custom classifier head:
+| Plant | Disease classes |
+|-------|-----------------|
+| Rose | 8 |
+| Hibiscus | 4 |
+| Aloe Vera | 5 |
+| Money Plant | 4 |
+| Chrysanthemum | 3 |
+| Turmeric | 5 |
 
-- Dropout(0.2)
-- Linear(last_channel -> 512)
-- ReLU
-- Dropout(0.2)
-- Linear(512 -> num_classes)
-
-### Training pipeline
-
-Training code is in `ai/src/models/train.py` and data loader in `ai/src/data/dataset.py`.
-
-- Base model: pretrained MobileNetV2
-- Train/validation split: 80/20 random split
-- Loss: CrossEntropyLoss
-- Optimizer: Adam (default lr = 1e-4)
-- Image normalization:
-	- mean: [0.485, 0.456, 0.406]
-	- std: [0.229, 0.224, 0.225]
-
-### Exported model artifacts
+### Exported artifacts
 
 - `ai/exports/smart_plant_doctor_model.pth`
 - `ai/exports/class_mapping.json`
 
-### Reported performance
+## Tech Stack
 
-- Validation accuracy reported in project: 92.37%
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, TypeScript, Vite, Tailwind CSS, TanStack Query |
+| Backend | FastAPI, SQLAlchemy, Alembic |
+| Auth | Supabase (JWT + Google OAuth) |
+| Database | PostgreSQL (Supabase) / SQLite (local) |
+| AI / ML | PyTorch, MobileNetV2 |
+| LLM Chat | Google Gemma 4 via Gemini API |
+| IoT | ESP32, PlatformIO, WebSockets |
+| Maps | Leaflet (disease map) |
 
-## Supported Plants and Classes
+## Quick Start
 
-Plants covered in this project include:
+### Prerequisites
 
-- Aloe Vera
-- Chrysanthemum
-- Hibiscus
-- Money Plant
-- Rose
-- Turmeric
+- Python 3.11+
+- Node.js 18+
+- Supabase project (for auth) — see [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
 
-Total classes: 29 (healthy + disease categories).
-
-## Setup
-
-### 1) Create environment and install dependencies
+### 1. Clone
 
 ```bash
+git clone https://github.com/GitHpriyanshu23/Smart-Plant-Doctor.git
+cd Smart-Plant-Doctor
+```
+
+### 2. Backend
+
+```bash
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp ../.env.example .env   # configure DATABASE_URL, SUPABASE_*, GEMINI_API_KEY
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 2) Verify model files
+### 3. Frontend
 
 ```bash
-ls ai/exports/smart_plant_doctor_model.pth ai/exports/class_mapping.json
+cd frontend
+cp .env.example .env      # add VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
+npm install
+npm run dev
 ```
 
-## Run (Web App + Ingest)
+Open **http://localhost:5173** — landing page → sign in → dashboard.
 
-Use two terminals from repository root.
+### Environment variables
 
-### Terminal A: start ingest API
+**Backend** (`backend/.env`):
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string or `sqlite:////tmp/smart_plant_doctor.db` |
+| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_JWT_SECRET` | Supabase JWT secret (Settings → API) |
+| `GEMINI_API_KEY` | Google AI API key for chat |
+| `MODEL_PATH` | Path to `smart_plant_doctor_model.pth` |
+
+**Frontend** (`frontend/.env`):
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
+
+## ESP32 Firmware
+
+Updated firmware in `firmware/` with NVS token storage and multi-pot sensor support.
 
 ```bash
-source .venv/bin/activate
-export INGEST_TOKEN=changeme
-uvicorn ingest:app --host 0.0.0.0 --port 8000
-```
-
-### Terminal B: start Streamlit dashboard
-
-```bash
-source .venv/bin/activate
-streamlit run app.py --server.port 8502
-```
-
-Open: `http://localhost:8502`
-
-## ESP32 Realtime Sensor Integration
-
-Firmware is in `sensors data/src/main.cpp`.
-
-Set these values before upload:
-
-- Wi-Fi SSID/password
-- `ingestUrl` (your laptop LAN IP + `/ingest`)
-- `ingestToken` (must match `INGEST_TOKEN`)
-- `plantName` (appears in dashboard dropdown)
-
-Example:
-
-```cpp
-const char* ingestUrl = "http://<YOUR-LAPTOP-LAN-IP>:8000/ingest";
-const char* ingestToken = "changeme";
-```
-
-### Upload commands (PlatformIO)
-
-```bash
-cd "sensors data"
+cd firmware
+# Set WIFI_SSID, WIFI_PASSWORD in platformio.ini or src/main.cpp
 pio run -t upload
-pio device monitor -b 115200
 ```
 
-If `pio` is not installed:
+Register your device in the app UI, then claim it with the device token.
 
-```bash
-python3 -m pip install -U platformio
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/plants` | List user's plants |
+| `POST` | `/api/v1/plants` | Add a plant |
+| `POST` | `/api/v1/diagnose` | Upload leaf image for disease detection |
+| `GET` | `/api/v1/diagnose/history` | Diagnosis history |
+| `POST` | `/api/v1/chat` | AI plant care chat |
+| `GET` | `/api/v1/encyclopedia` | Species care guides |
+| `POST` | `/api/v1/ingest` | ESP32 sensor data (device token) |
+| `WS` | `/api/v1/ws/plants/{id}` | Live sensor feed |
+
+## Deployment
+
+| Component | Platform |
+|-----------|----------|
+| Frontend | [Vercel](https://vercel.com) |
+| Backend | [Railway](https://railway.app) / [Render](https://render.com) |
+| Database + Auth | [Supabase](https://supabase.com) |
+
+## Legacy Streamlit App
+
+The original Streamlit prototype is preserved at `app.py` for reference. The new app is the recommended version.
+
+## Project Structure
+
 ```
-
-## Data Flow Notes
-
-- ESP32 posts JSON readings to FastAPI `/ingest`.
-- FastAPI writes rows into `data/sensors.db` table `readings`.
-- Dashboard queries latest and historical rows from SQLite.
-- Auto-refresh updates the UI every few seconds.
-
-## Useful Debug Commands
-
-Check latest sensor rows:
-
-```bash
-sqlite3 data/sensors.db "select rowid, datetime(ts,'unixepoch'), plant, temperature, humidity, light, soil_moisture, ph from readings order by rowid desc limit 10;"
+smart-plant-doctor/
+├── frontend/          # React PWA
+├── backend/           # FastAPI API
+├── ai/                # ML model + training
+├── firmware/          # ESP32 PlatformIO project
+├── docs/              # Setup guides + demo video
+└── app.py             # Legacy Streamlit app
 ```
-
-Check ingest endpoint:
-
-```bash
-curl -X POST http://127.0.0.1:8000/ingest \
-	-H "Authorization: Bearer changeme" \
-	-H "Content-Type: application/json" \
-	-d '{"ts":1710000000,"plant":"Money Plant","temperature":30.0,"humidity":45.0,"light":500.0,"soil_moisture":35.0,"ph":6.5}'
-```
-
-## Tech Stack
-
-- Python, Streamlit, FastAPI, SQLite
-- PyTorch + Torchvision
-- Plotly, Pandas, NumPy
-- ESP32 (Arduino framework, PlatformIO)
-
-## Repository Notes
-
-- `app.py`: Streamlit UI
-- `ingest.py`: sensor ingest API
-- `ai/inference.py`: disease inference logic
-- `sensors data/src/main.cpp`: ESP32 firmware
 
 ## License
 
-MIT (add `LICENSE` file in repo if you want explicit publishing metadata).
+MIT
+
+## Author
+
+[Priyanshu](https://github.com/GitHpriyanshu23)
