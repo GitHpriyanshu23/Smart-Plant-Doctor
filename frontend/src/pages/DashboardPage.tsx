@@ -192,38 +192,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Demo banner */}
-      {isDemo && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-lg">📊</span>
-            <div>
-              <p className="text-sm font-semibold text-amber-800">Demo Mode — Simulated Sensor Data</p>
-              <p className="text-xs text-amber-600">
-                {noPlants
-                  ? 'This is preview data. Add plants and connect IoT sensors to see live readings.'
-                  : 'No sensor data yet — showing simulated readings. Connect an ESP32 device to see live data.'}
-              </p>
-            </div>
-          </div>
-          {noPlants ? (
-            <a
-              href="/plants"
-              className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              Add Plants
-            </a>
-          ) : (
-            <a
-              href="/devices/onboard"
-              className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              Connect Device
-            </a>
-          )}
-        </div>
-      )}
-
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

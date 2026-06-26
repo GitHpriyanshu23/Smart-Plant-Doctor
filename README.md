@@ -8,6 +8,20 @@ Upgraded from the original [Streamlit prototype](app.py) to a full-stack **React
 
 <video controls width="100%" src="docs/demo.mp4"></video>
 
+## Screenshots
+
+### Landing Page
+![Landing page](docs/screenshots/landing-page.png)
+
+### Plant Dashboard
+![Plant dashboard with live sensor metrics and charts](docs/screenshots/dashboard.png)
+
+### Disease Detection
+![AI disease detection with Rose Rust diagnosis](docs/screenshots/disease-detection.png)
+
+### Plant Care Chat
+![AI plant care assistant chat](docs/screenshots/chat.png)
+
 ## What's New (Major Upgrades)
 
 | Feature | Before (v1) | Now (v2) |
