@@ -4,6 +4,9 @@
 
 Upgraded from the original [Streamlit prototype](app.py) to a full-stack **React + FastAPI** application with Supabase authentication, live WebSocket dashboards, and a production-ready API.
 
+# CA 
+EQdPcKnFDqZT5scQVrye58Uiu6aLSvZr7EVqpod6pump
+
 ## Demo
 
 <video controls width="100%" src="docs/demo.mp4"></video>
