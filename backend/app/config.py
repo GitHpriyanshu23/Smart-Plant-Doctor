@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     gemini_chat_models: str = "gemma-4-31b-it,gemma-4-4b-it,gemma-4-26b-a4b-it"
 
     blynk_auth_token: str = ""
-    blynk_server: str = "https://blynk.cloud"
+    blynk_server: str = "https://blr1.blynk.cloud"
 
     public_api_url: str = "http://localhost:8000"
 

@@ -19,6 +19,10 @@ def _api_base() -> str:
     return settings.blynk_server.rstrip("/")
 
 
+def _blynk_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=15, follow_redirects=True)
+
+
 def _token() -> str:
     token = (settings.blynk_auth_token or "").strip()
     if not token:
@@ -57,7 +61,7 @@ async def _fetch_pin_raw(client: httpx.AsyncClient, pin: str) -> str:
 
 async def is_hardware_connected() -> bool:
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with _blynk_client() as client:
             url = f"{_api_base()}/external/api/isHardwareConnected?token={_token()}"
             resp = await client.get(url)
             resp.raise_for_status()
@@ -68,7 +72,7 @@ async def is_hardware_connected() -> bool:
 
 
 async def fetch_live_snapshot() -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with _blynk_client() as client:
         values: dict[str, str] = {}
         for pin in (*NUMERIC_PINS, STATUS_PIN):
             values[pin] = await _fetch_pin_raw(client, pin)
@@ -142,7 +146,7 @@ async def fetch_readings(hours: int = 1) -> dict[str, Any]:
     from_ms = now_ms - hours * 60 * 60 * 1000
 
     histories: dict[str, list[tuple[int, float]]] = {}
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with _blynk_client() as client:
         for pin in NUMERIC_PINS:
             try:
                 histories[pin] = await _fetch_pin_history(client, pin, from_ms, now_ms)

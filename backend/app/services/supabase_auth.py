@@ -3,6 +3,7 @@ import threading
 
 import httpx
 from jose import JWTError, jwt
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -92,8 +93,14 @@ def get_or_create_user_from_token(db: Session, token: str) -> User | None:
     if not user:
         user = User(supabase_id=supabase_id, email=email, password_hash=None)
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            user = db.query(User).filter(User.supabase_id == supabase_id).first()
+            if not user:
+                raise
     elif email and user.email != email:
         user.email = email
         db.commit()
