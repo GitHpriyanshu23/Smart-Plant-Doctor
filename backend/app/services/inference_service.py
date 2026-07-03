@@ -1,37 +1,35 @@
-import sys
 from pathlib import Path
 
 from app.config import get_settings
+from app.ml.inference import SmartPlantDoctor
 
 settings = get_settings()
 _model = None
 
+_BUNDLED_MODEL = (
+    Path(__file__).resolve().parent.parent / "ml" / "exports" / "smart_plant_doctor_model.pth"
+)
 
-def _ai_root() -> Path:
-    if settings.ai_root:
-        return Path(settings.ai_root)
-    candidates = [
-        Path("/app/ai"),
-        Path(__file__).resolve().parents[2] / "ai",
-        Path(__file__).resolve().parents[3] / "ai",
-    ]
-    for path in candidates:
-        if (path / "inference.py").is_file():
-            return path
-    return candidates[-1]
+
+def _model_path() -> Path:
+    if settings.model_path:
+        configured = Path(settings.model_path)
+        if configured.is_file():
+            return configured
+    if _BUNDLED_MODEL.is_file():
+        return _BUNDLED_MODEL
+    repo_model = Path(__file__).resolve().parents[3] / "ai" / "exports" / "smart_plant_doctor_model.pth"
+    if repo_model.is_file():
+        return repo_model
+    raise FileNotFoundError(
+        f"Model weights not found. Checked {_BUNDLED_MODEL} and {repo_model}"
+    )
 
 
 def _get_model():
     global _model
     if _model is None:
-        ai_root = _ai_root()
-        if str(ai_root) not in sys.path:
-            sys.path.insert(0, str(ai_root))
-        from inference import SmartPlantDoctor
-
-        model_path = ai_root / "exports" / "smart_plant_doctor_model.pth"
-        if not model_path.is_file():
-            raise FileNotFoundError(f"Model weights not found at {model_path}")
+        model_path = _model_path()
         _model = SmartPlantDoctor(model_path=str(model_path))
     return _model
 

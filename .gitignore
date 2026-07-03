@@ -76,6 +76,11 @@ ai/**/*.gif
 !ai/exports/smart_plant_doctor_model.pth
 !ai/exports/class_mapping.json
 
+# Bundled model for backend Docker deployments
+!backend/app/ml/exports/
+!backend/app/ml/exports/smart_plant_doctor_model.pth
+!backend/app/ml/exports/class_mapping.json
+
 # ------------------------------
 # Streamlit / VS Code
 # ------------------------------
