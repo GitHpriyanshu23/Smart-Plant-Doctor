@@ -1,5 +1,21 @@
 from functools import lru_cache
+from urllib.parse import urlparse
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _validate_database_url(url: str) -> str:
+    if url.startswith("sqlite"):
+        return url
+    parsed = urlparse(url)
+    if not parsed.hostname or "@" in (parsed.hostname or ""):
+        raise ValueError(
+            "DATABASE_URL looks malformed. Use the Supabase connection URI exactly as copied "
+            "(postgresql://postgres.[ref]:[password]@....pooler.supabase.com:6543/postgres). "
+            "Do not include your email in the URL. URL-encode special characters in the password."
+        )
+    return url
 
 
 class Settings(BaseSettings):
@@ -28,6 +44,11 @@ class Settings(BaseSettings):
     blynk_server: str = "https://blynk.cloud"
 
     public_api_url: str = "http://localhost:8000"
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, value: str) -> str:
+        return _validate_database_url(value)
 
     @property
     def cors_origin_list(self) -> list[str]:
