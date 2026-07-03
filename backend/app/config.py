@@ -56,6 +56,11 @@ class Settings(BaseSettings):
 
     public_api_url: str = "http://localhost:8000"
 
+    @field_validator("blynk_auth_token")
+    @classmethod
+    def strip_blynk_token(cls, value: str) -> str:
+        return value.strip()
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, value: str) -> str:

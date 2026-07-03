@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
@@ -27,6 +28,9 @@ async def get_blynk_readings(
         return payload
     except ValueError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except httpx.HTTPError as exc:
+        logger.exception("Blynk HTTP error")
+        raise HTTPException(status_code=502, detail=f"Blynk API error: {exc}") from exc
     except Exception as exc:
         logger.exception("Blynk readings fetch failed")
         raise HTTPException(status_code=502, detail="Failed to fetch Blynk sensor data") from exc
