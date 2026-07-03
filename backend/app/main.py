@@ -35,9 +35,10 @@ def is_allowed_origin(origin: str | None) -> bool:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(
-        "Auth mode: %s | JWT secret loaded: %s | DB: %s | CORS env: %s | Blynk: %s",
+        "Auth mode: %s | JWT secret loaded: %s | Supabase URL: %s | DB: %s | CORS env: %s | Blynk: %s",
         "supabase" if settings.use_supabase_auth else "legacy",
         bool(settings.supabase_jwt_secret),
+        settings.supabase_url or "(missing)",
         settings.database_url[:40] + "...",
         settings.cors_origin_list,
         bool(settings.blynk_auth_token),

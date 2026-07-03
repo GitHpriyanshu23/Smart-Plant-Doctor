@@ -5,6 +5,17 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _normalize_url(url: str) -> str:
+    value = url.strip()
+    if not value:
+        return value
+    if value.startswith("https:/") and not value.startswith("https://"):
+        value = value.replace("https:/", "https://", 1)
+    if value.startswith("http:/") and not value.startswith("http://"):
+        value = value.replace("http:/", "http://", 1)
+    return value
+
+
 def _validate_database_url(url: str) -> str:
     if url.startswith("sqlite"):
         return url
@@ -25,7 +36,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     # Supabase — set DATABASE_URL to your Supabase Postgres connection string (Session pooler)
-    supabase_url: str = ""
+    supabase_url: str = "https://yzpjyhrnkwmtsviysnre.supabase.co"
     supabase_jwt_secret: str = ""
 
     database_url: str = "sqlite:///./data/app.db"
@@ -49,6 +60,20 @@ class Settings(BaseSettings):
     @classmethod
     def validate_database_url(cls, value: str) -> str:
         return _validate_database_url(value)
+
+    @field_validator("supabase_url")
+    @classmethod
+    def validate_supabase_url(cls, value: str) -> str:
+        value = _normalize_url(value)
+        if value and not value.startswith(("http://", "https://")):
+            raise ValueError("SUPABASE_URL must start with https://")
+        return value.rstrip("/")
+
+    @field_validator("cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, value: str) -> str:
+        parts = [_normalize_url(part.strip()) for part in value.split(",") if part.strip()]
+        return ",".join(parts)
 
     @property
     def cors_origin_list(self) -> list[str]:
