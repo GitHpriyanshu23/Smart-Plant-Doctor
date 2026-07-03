@@ -19,10 +19,12 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(
-        "Auth mode: %s | JWT secret loaded: %s | DB: %s",
+        "Auth mode: %s | JWT secret loaded: %s | DB: %s | CORS: %s | Blynk: %s",
         "supabase" if settings.use_supabase_auth else "legacy",
         bool(settings.supabase_jwt_secret),
         settings.database_url[:40] + "...",
+        settings.cors_origin_list,
+        bool(settings.blynk_auth_token),
     )
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -40,6 +42,7 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

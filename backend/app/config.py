@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data/app.db"
 
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,https://smart-plant-dr.vercel.app"
 
     uploads_dir: str = "uploads"
     model_path: str = "../ai/exports/smart_plant_doctor_model.pth"
