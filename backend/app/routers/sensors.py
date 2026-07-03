@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -6,12 +7,29 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user, get_user_from_token_string
 from app.models import Device, DevicePot, Plant, Reading, User
-from app.schemas import DeviceCommandOut, IngestPayload, ReadingOut
+from app.schemas import BlynkReadingsResponse, DeviceCommandOut, IngestPayload, ReadingOut
 from app.security import hash_token
+from app.services.blynk_service import fetch_readings as fetch_blynk_readings
 from app.services.proactive_alerts import evaluate_proactive_alerts
 from app.ws_manager import ws_manager
 
 router = APIRouter(tags=["sensors"])
+logger = logging.getLogger("uvicorn.error")
+
+
+@router.get("/sensors/blynk/readings", response_model=BlynkReadingsResponse)
+async def get_blynk_readings(
+    hours: int = Query(default=1, ge=1, le=24),
+    _user: User = Depends(get_current_user),
+):
+    try:
+        payload = await fetch_blynk_readings(hours=hours)
+        return payload
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Blynk readings fetch failed")
+        raise HTTPException(status_code=502, detail="Failed to fetch Blynk sensor data") from exc
 
 
 def _get_device_from_token(authorization: str, db: Session) -> Device:

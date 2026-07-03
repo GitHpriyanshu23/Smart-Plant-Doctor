@@ -27,6 +27,14 @@ interface Reading {
   light: number;
   soil_moisture: number;
   ph: number;
+  soil_status?: string;
+}
+
+interface BlynkPayload {
+  connected: boolean;
+  source: string;
+  latest: Reading;
+  readings: Reading[];
 }
 
 function generateMockReadings(): Reading[] {
@@ -55,22 +63,61 @@ const MOCK_PLANTS: Plant[] = [
   { id: -3, species: 'Money Plant', nickname: 'Office Buddy' },
 ];
 
-function soilStatus(moisture: number) {
+const BLYNK_PLANTS: Plant[] = [
+  { id: -10, species: 'Live Sensor', nickname: 'Smart Plant Doctor' },
+];
+
+function soilStatus(moisture: number, blynkRaw = false, statusLabel?: string) {
+  if (statusLabel) {
+    const label = statusLabel;
+    if (label === 'Dry') return { label, color: 'bg-orange-100 text-orange-700', icon: '⚠️' };
+    if (label === 'Moist') return { label, color: 'bg-green-100 text-green-700', icon: '💧' };
+    if (label === 'Wet') return { label, color: 'bg-blue-100 text-blue-700', icon: '🌱' };
+  }
+
+  if (blynkRaw) {
+    if (moisture >= 2500) return { label: 'Dry', color: 'bg-orange-100 text-orange-700', icon: '⚠️' };
+    if (moisture >= 1500) return { label: 'Moist', color: 'bg-green-100 text-green-700', icon: '💧' };
+    return { label: 'Wet', color: 'bg-blue-100 text-blue-700', icon: '🌱' };
+  }
+
   if (moisture < 30) return { label: 'Dry', color: 'bg-orange-100 text-orange-700', icon: '🏜️' };
   if (moisture < 60) return { label: 'Moist', color: 'bg-green-100 text-green-700', icon: '💧' };
   return { label: 'Wet', color: 'bg-blue-100 text-blue-700', icon: '🌊' };
 }
 
-function healthScore(r: Reading) {
+function soilMoisturePercent(moisture: number, blynkRaw: boolean) {
+  if (!blynkRaw) return moisture;
+  const dryAdc = 3200;
+  const wetAdc = 1200;
+  const pct = ((dryAdc - moisture) / (dryAdc - wetAdc)) * 100;
+  return Math.max(0, Math.min(100, pct));
+}
+
+function healthScore(r: Reading, blynkRaw = false) {
+  const soilPct = soilMoisturePercent(r.soil_moisture, blynkRaw);
+  const lightValue = blynkRaw ? (r.light / 4095) * 1200 : r.light;
   let score = 100;
   if (r.temperature < 15 || r.temperature > 32) score -= 20;
   if (r.humidity < 30 || r.humidity > 85) score -= 15;
-  if (r.soil_moisture < 25 || r.soil_moisture > 80) score -= 25;
-  if (r.light < 200) score -= 10;
+  if (soilPct < 25 || soilPct > 80) score -= 25;
+  if (lightValue < 200) score -= 10;
   return Math.max(0, score);
 }
 
-function getMetricStatus(label: string, value: number): { status: 'good' | 'warning' | 'critical'; delta: string } {
+function getMetricStatus(label: string, value: number, blynkRaw = false): { status: 'good' | 'warning' | 'critical'; delta: string } {
+  if (blynkRaw && label === 'soil_moisture') {
+    if (value >= 3000) return { status: 'critical', delta: '↓ Dry' };
+    if (value >= 2500) return { status: 'warning', delta: '↓ Dry' };
+    if (value < 1200) return { status: 'warning', delta: '↑ Wet' };
+    return { status: 'good', delta: '✓ Optimal' };
+  }
+  if (blynkRaw && label === 'light') {
+    if (value < 300) return { status: 'critical', delta: '↓ Too dark' };
+    if (value < 800) return { status: 'warning', delta: '↓ Low light' };
+    return { status: 'good', delta: '✓ Good light' };
+  }
+
   switch (label) {
     case 'temperature':
       if (value < 10 || value > 38) return { status: 'critical', delta: value > 38 ? '↑ High' : '↓ Low' };
@@ -97,8 +144,10 @@ function getMetricStatus(label: string, value: number): { status: 'good' | 'warn
   }
 }
 
-function getRecommendations(r: Reading): Array<{ text: string; type: 'good' | 'warning' | 'critical' }> {
+function getRecommendations(r: Reading, blynkRaw = false): Array<{ text: string; type: 'good' | 'warning' | 'critical' }> {
   const tips: Array<{ text: string; type: 'good' | 'warning' | 'critical' }> = [];
+  const soilPct = soilMoisturePercent(r.soil_moisture, blynkRaw);
+  const lightValue = blynkRaw ? (r.light / 4095) * 1200 : r.light;
   if (r.temperature >= 15 && r.temperature <= 32)
     tips.push({ text: 'Temperature is in the optimal range for most houseplants.', type: 'good' });
   else if (r.temperature > 32)
@@ -106,9 +155,9 @@ function getRecommendations(r: Reading): Array<{ text: string; type: 'good' | 'w
   else
     tips.push({ text: 'Temperature is low — consider moving your plant to a warmer spot.', type: 'warning' });
 
-  if (r.soil_moisture > 75)
+  if (soilPct > 75)
     tips.push({ text: 'Soil moisture is high — reduce watering frequency to prevent root rot.', type: 'warning' });
-  else if (r.soil_moisture < 25)
+  else if (soilPct < 25)
     tips.push({ text: 'Soil is dry — water your plant soon.', type: 'critical' });
   else
     tips.push({ text: 'Soil moisture is at a healthy level.', type: 'good' });
@@ -120,7 +169,7 @@ function getRecommendations(r: Reading): Array<{ text: string; type: 'good' | 'w
   else
     tips.push({ text: 'Humidity levels are comfortable for your plant.', type: 'good' });
 
-  if (r.light < 200)
+  if (lightValue < 200)
     tips.push({ text: 'Light levels are low — move to a brighter location or supplement with grow lights.', type: 'warning' });
   else
     tips.push({ text: 'Light intensity is adequate for healthy growth.', type: 'good' });
@@ -149,46 +198,65 @@ const statusDotColors = {
 export default function DashboardPage() {
   const [plantId, setPlantId] = useState<number | null>(null);
 
+  const { data: blynkData, isSuccess: blynkReady, isError: blynkError } = useQuery({
+    queryKey: ['blynk-readings'],
+    queryFn: () => api<BlynkPayload>('/api/v1/sensors/blynk/readings?hours=1'),
+    refetchInterval: 5000,
+    retry: false,
+  });
+
+  const usingBlynk = blynkReady && !!blynkData && blynkData.readings.length > 0;
+
   const { data: apiPlants, isError: plantsError } = useQuery({
     queryKey: ['plants'],
     queryFn: () => api<Plant[]>('/api/v1/plants'),
     retry: false,
+    enabled: !usingBlynk,
   });
 
-  const noPlants = plantsError || !apiPlants || apiPlants.length === 0;
-  const plants = noPlants ? MOCK_PLANTS : apiPlants;
+  const noPlants = !usingBlynk && (plantsError || !apiPlants || apiPlants.length === 0);
+  const plants: Plant[] = usingBlynk ? BLYNK_PLANTS : noPlants ? MOCK_PLANTS : apiPlants ?? [];
 
   const selectedId = plantId ?? plants[0]?.id ?? null;
 
   const { data: apiReadings = [], isFetched: readingsFetched } = useQuery({
     queryKey: ['readings', selectedId],
     queryFn: () => api<Reading[]>(`/api/v1/plants/${selectedId}/readings?limit=200`),
-    enabled: !!selectedId && !noPlants,
+    enabled: !!selectedId && !noPlants && !usingBlynk,
     refetchInterval: 30000,
     retry: false,
   });
 
   const mockReadings = useMemo(() => generateMockReadings(), []);
-  const usingMockReadings = noPlants || (readingsFetched && apiReadings.length === 0);
-  const readings = usingMockReadings ? mockReadings : apiReadings;
-  const isDemo = noPlants || usingMockReadings;
+  const usingMockReadings = !usingBlynk && (noPlants || (readingsFetched && apiReadings.length === 0));
+  const readings = usingBlynk ? blynkData!.readings : usingMockReadings ? mockReadings : apiReadings;
+  const isDemo = !usingBlynk && (noPlants || usingMockReadings);
+  const isBlynkLive = usingBlynk && blynkData!.connected;
 
-  const realPlantId = noPlants ? null : selectedId;
+  const realPlantId = noPlants || usingBlynk ? null : selectedId;
   const { reading: liveReading, connected } = usePlantWebSocket(realPlantId);
 
-  const latest = liveReading || readings[0];
+  const latest = usingBlynk ? blynkData!.latest : liveReading || readings[0];
+  const blynkRaw = usingBlynk;
   const chartData = [...readings].reverse().map((r) => ({
     time: new Date(r.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     temp: +r.temperature.toFixed(1),
     humidity: +r.humidity.toFixed(1),
-    soil: +r.soil_moisture.toFixed(1),
+    soil: +r.soil_moisture.toFixed(0),
     light: +r.light.toFixed(0),
   }));
 
-  const soil = latest ? soilStatus(latest.soil_moisture) : null;
-  const health = latest ? healthScore(latest) : 0;
-  const recommendations = latest ? getRecommendations(latest) : [];
+  const soil = latest
+    ? soilStatus(
+        latest.soil_moisture,
+        blynkRaw,
+        'soil_status' in latest ? latest.soil_status : undefined,
+      )
+    : null;
+  const health = latest ? healthScore(latest, blynkRaw) : 0;
+  const recommendations = latest ? getRecommendations(latest, blynkRaw) : [];
   const lastUpdated = latest ? new Date(latest.ts * 1000).toLocaleString() : null;
+  const soilBarWidth = latest ? soilMoisturePercent(latest.soil_moisture, blynkRaw) : 0;
 
   return (
     <div className="space-y-6">
@@ -214,18 +282,32 @@ export default function DashboardPage() {
           </select>
           <span
             className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full ${
-              isDemo
+              isBlynkLive
+                ? 'bg-green-100 text-green-700 ring-1 ring-green-200'
+                : isDemo
                 ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
                 : connected
                   ? 'bg-green-100 text-green-700 ring-1 ring-green-200'
                   : 'bg-gray-100 text-gray-600 ring-1 ring-gray-200'
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${isDemo ? 'bg-amber-500 animate-pulse' : connected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-            {isDemo ? 'Demo' : connected ? 'Live' : 'Polling'}
+            <span className={`w-2 h-2 rounded-full ${
+              isBlynkLive || connected
+                ? 'bg-green-500 animate-pulse'
+                : isDemo
+                  ? 'bg-amber-500 animate-pulse'
+                  : 'bg-gray-400'
+            }`} />
+            {isBlynkLive ? 'Blynk Live' : isDemo ? 'Demo' : connected ? 'Live' : usingBlynk ? 'Blynk' : 'Polling'}
           </span>
         </div>
       </div>
+
+      {blynkError && !usingBlynk && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          Live Blynk sensor feed is unavailable. Showing demo data until `BLYNK_AUTH_TOKEN` is configured on the backend.
+        </p>
+      )}
 
       {latest && (
         <>
@@ -255,7 +337,7 @@ export default function DashboardPage() {
             />
             <MetricCard
               label="Light"
-              value={`${latest.light.toFixed(0)} lux`}
+              value={`${latest.light.toFixed(0)} lx`}
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
@@ -263,10 +345,11 @@ export default function DashboardPage() {
               }
               metric="light"
               rawValue={latest.light}
+              blynkRaw={blynkRaw}
             />
             <MetricCard
-              label="Soil Moisture"
-              value={`${latest.soil_moisture.toFixed(0)}%`}
+              label={blynkRaw ? 'Soil' : 'Soil Moisture'}
+              value={blynkRaw ? `${latest.soil_moisture.toFixed(0)}` : `${latest.soil_moisture.toFixed(0)}%`}
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 12c0 4.97-4.03 9-9 9s-9-4.03-9-9c0-3.728 4.5-9.5 9-14 4.5 4.5 9 10.272 9 14z" />
@@ -275,6 +358,7 @@ export default function DashboardPage() {
               metric="soil_moisture"
               rawValue={latest.soil_moisture}
               badge={soil}
+              blynkRaw={blynkRaw}
             />
             <MetricCard
               label="Plant Health"
@@ -327,8 +411,8 @@ export default function DashboardPage() {
                           contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '12px' }} />
-                        <Line type="monotone" dataKey="soil" stroke="#ca8a04" strokeWidth={2} dot={false} name="Soil (%)" />
-                        <Line type="monotone" dataKey="light" stroke="#9333ea" strokeWidth={2} dot={false} name="Light (lux)" />
+                        <Line type="monotone" dataKey="soil" stroke="#ca8a04" strokeWidth={2} dot={false} name={blynkRaw ? 'Soil (raw)' : 'Soil (%)'} />
+                        <Line type="monotone" dataKey="light" stroke="#9333ea" strokeWidth={2} dot={false} name="Light (lx)" />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -402,7 +486,7 @@ export default function DashboardPage() {
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-orange-400 via-green-500 to-blue-500"
-                        style={{ width: `${Math.min(100, latest.soil_moisture)}%` }}
+                        style={{ width: `${Math.min(100, soilBarWidth)}%` }}
                       />
                     </div>
                   </div>
@@ -446,6 +530,7 @@ function MetricCard({
   metric,
   rawValue,
   badge,
+  blynkRaw = false,
 }: {
   label: string;
   value: string;
@@ -453,8 +538,9 @@ function MetricCard({
   metric: string;
   rawValue: number;
   badge?: { label: string; color: string; icon: string } | null;
+  blynkRaw?: boolean;
 }) {
-  const { status, delta } = getMetricStatus(metric, rawValue);
+  const { status, delta } = getMetricStatus(metric, rawValue, blynkRaw);
 
   return (
     <div className={`rounded-2xl border p-4 transition-all hover:shadow-md ${statusColors[status]}`}>

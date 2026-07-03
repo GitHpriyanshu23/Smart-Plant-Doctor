@@ -53,17 +53,25 @@ class PlantOut(BaseModel):
 
 class ReadingOut(BaseModel):
     id: int
-    plant_id: int | None
-    pot_index: int
+    plant_id: int | None = None
+    pot_index: int = 0
     ts: int
     temperature: float
     humidity: float
     light: float
     soil_moisture: float
-    ph: float
-    created_at: datetime
+    ph: float = 6.5
+    soil_status: str | None = None
+    created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class BlynkReadingsResponse(BaseModel):
+    connected: bool
+    source: str = "blynk"
+    latest: ReadingOut
+    readings: list[ReadingOut]
 
 
 class IngestReadingItem(BaseModel):
