@@ -14,12 +14,12 @@ interface Plant {
 const SPECIES = ['Rose', 'Hibiscus', 'Aloe Vera', 'Money Plant', 'Chrysanthemum', 'Turmeric'];
 
 const PLANT_IMAGES: Record<string, string> = {
-  Rose: 'https://images.unsplash.com/photo-1455659817273-f96807779a8a?w=600&q=80',
-  Hibiscus: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=600&q=80',
-  'Aloe Vera': 'https://images.unsplash.com/photo-1567331711402-509c12c41959?w=600&q=80',
-  'Money Plant': 'https://images.unsplash.com/photo-1637967886160-fd78dc3ce3f5?w=600&q=80',
-  Chrysanthemum: 'https://images.unsplash.com/photo-1504567961542-e24d9439a724?w=600&q=80',
-  Turmeric: 'https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=600&q=80',
+  Rose: '/plants/rose.png',
+  Hibiscus: '/plants/hibiscus.png',
+  'Aloe Vera': '/plants/aloe-vera.png',
+  'Money Plant': '/plants/money-plant.png',
+  Chrysanthemum: '/plants/chrysanthemum.png',
+  Turmeric: '/plants/turmeric.png',
 };
 
 export default function PlantsPage() {
